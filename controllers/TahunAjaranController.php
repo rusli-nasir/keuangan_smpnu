@@ -62,13 +62,19 @@ class TahunAjaranController extends Controller
     public function actionCreate()
     {
         $model = new TahunAjaran();
-
         if ($model->load(Yii::$app->request->post())) {
             $sampai = (int)$model->tahun_ajaran + 1;
             $model->info = "{$model->tahun_ajaran} - {$sampai}";
-            if($model->save()){
-                return $this->redirect(['view', 'id' => $model->id]);
+            $transaction = Yii::$app->db->beginTransaction();
+            try{
+                if($model->save()){
+                    $transaction->commit();
+                    return $this->redirect(['view', 'id' => $model->id]);
+                }
+            }catch (\Exception $exception){
+                $transaction->rollBack();
             }
+
             Yii::$app->session->setFlash('error',Html::errorSummary($model));
         }
 
@@ -86,7 +92,7 @@ class TahunAjaranController extends Controller
     public function actionUpdate($id)
     {
         $model = $this->findModel($id);
-
+        $model->scenario = $model::SCENARIO_UPDATE;
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->id]);
         } else {
